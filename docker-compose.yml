@@ -1,0 +1,37 @@
+services:
+    db:
+        image: postgres:15-alpine
+        environment:
+            POSTGRES_USER: tesla_user
+            POSTGRES_PASSWORD: tesla_pass
+            POSTGRES_DB: tesla_db
+        ports:
+            - "5432:5432"
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U tesla_user -d tesla_db"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+    backend:
+        build: ./backend
+        ports:
+            - "3001:3001"
+        environment:
+            DATABASE_URL: postgresql://tesla_user:tesla_pass@db:5432/tesla_db
+        depends_on:
+            db:
+                condition: service_healthy
+        command: sh -c "npx prisma db push && npx prisma db seed && node src/index.js"
+
+    frontend:
+        build: ./frontend
+        ports:
+            - "3000:3000"
+        depends_on:
+            - backend
+
+volumes:
+    pgdata:

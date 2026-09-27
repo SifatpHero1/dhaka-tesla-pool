@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PASSENGER
+  DRIVER
+}
+
+enum RideStatus {
+  REQUESTED
+  MATCHED
+  DRIVER_ARRIVED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id            String           @id @default(uuid())
+  name          String
+  role          Role             @default(PASSENGER)
+  phone         String           @unique
+  tesla         Tesla?
+  memberships   PoolMembership[]
+}
+
+model Tesla {
+  id            String           @id @default(uuid())
+  name          String
+  driverId      String           @unique
+  driver        User             @relation(fields: [driverId], references: [id])
+  capacity      Int              @default(3)
+  isOnline      Boolean          @default(false)
+  poolRides     PoolRide[]
+}
+
+model PoolRide {
+  id            String            @id @default(uuid())
+  teslaId       String
+  tesla         Tesla             @relation(fields: [teslaId], references: [id])
+  status        RideStatus        @default(REQUESTED)
+  members       PoolMembership[]
+  createdAt     DateTime          @default(now())
+}
+
+model PoolMembership {
+  id            String            @id @default(uuid())
+  poolRideId    String
+  poolRide      PoolRide          @relation(fields: [poolRideId], references: [id])
+  userId        String
+  user          User              @relation(fields: [userId], references: [id])
+  pickup        String
+  destination   String
+  fare          Int
+  status        RideStatus        @default(REQUESTED)
+}
